@@ -44,7 +44,11 @@ public class ExamplePlugin extends JavaPlugin {
         this.getEventRegistry().register(PlayerConnectEvent.class, this::onPlayerConnect);
         this.getEventRegistry().register(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
         
+        // Register mining XP system (gives 1 XP when mining rock/dirt with pickaxe)
+        this.getEntityStoreRegistry().registerSystem(new MiningXPSystem());
+        
         LOGGER.atInfo().log("Registered commands: /test, /givexp, /resetxp");
+        LOGGER.atInfo().log("Registered MiningXPSystem - mine rock/dirt with pickaxe to earn XP!");
         LOGGER.atInfo().log("XP data will be saved to plugins/ExamplePlugin/xp_data.json");
     }
 
