@@ -7,6 +7,8 @@ import com.hypixel.hytale.server.core.ui.Anchor;
 import com.hypixel.hytale.server.core.ui.Value;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.util.NotificationUtil;
+import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
@@ -15,12 +17,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * A custom HUD element that displays an experience bar on the player's screen.
  * The bar shows the current level and XP progress to the next level.
- * Features floating popup text when XP is gained!
+ * Features animated floating popup text when XP is gained!
  */
 public class ExperienceBarHud extends CustomUIHud {
 
     private static final int BAR_WIDTH = 636; // Total fill width (640 - 4 for padding)
-    private static final int POPUP_DURATION_MS = 2000; // How long popups stay visible
+    private static final int POPUP_DISPLAY_MS = 1200; // How long popup stays visible
     
     private int level = 1;
     private int currentXP = 0;
@@ -35,7 +37,7 @@ public class ExperienceBarHud extends CustomUIHud {
 
     @Override
     protected void build(@Nonnull UICommandBuilder commandBuilder) {
-        // Load the UI template (path relative to Common/UI/Custom/)
+        // Load the UI template - try without prefix since it's in Common/UI/Custom/
         commandBuilder.append("ExperienceBar.ui");
         
         // Set initial values
@@ -98,7 +100,8 @@ public class ExperienceBarHud extends CustomUIHud {
 
     /**
      * Adds XP and handles level ups.
-     * Shows a floating popup with the XP gained!
+     * Shows an animated floating popup for XP gain!
+     * Uses the notification system for level ups!
      *
      * @param amount The amount of XP to add
      * @return true if the player leveled up
@@ -106,7 +109,6 @@ public class ExperienceBarHud extends CustomUIHud {
     public boolean addExperience(int amount) {
         this.currentXP += amount;
         boolean leveledUp = false;
-        int levelsGained = 0;
 
         // Handle level up(s)
         while (this.currentXP >= this.xpToNextLevel) {
@@ -114,58 +116,64 @@ public class ExperienceBarHud extends CustomUIHud {
             this.level++;
             this.xpToNextLevel = calculateXPForLevel(this.level);
             leveledUp = true;
-            levelsGained++;
         }
 
-        // Update the display and show popup
+        // Update the display
         UICommandBuilder commandBuilder = new UICommandBuilder();
         updateDisplay(commandBuilder);
-        
-        // Show floating XP popup
-        if (leveledUp) {
-            showPopup(commandBuilder, "LEVEL UP! " + level, "#fbbf24"); // Gold color for level up
-        } else {
-            showPopup(commandBuilder, "+" + amount + " XP", "#4ade80"); // Green for normal XP
-        }
-        
         this.update(false, commandBuilder);
+        
+        // TODO: Re-enable popup once base UI is confirmed working
+        // showAnimatedPopup("+" + amount + " XP", "#4ade80");
+        
+        // Use notification system for level ups
+        if (leveledUp) {
+            NotificationUtil.sendNotification(
+                getPlayerRef().getPacketHandler(),
+                Message.raw("Level Up!"),
+                Message.raw("You reached level " + level + "!"),
+                NotificationStyle.Success
+            );
+        }
 
         return leveledUp;
     }
     
     /**
-     * Shows a floating popup text above the XP bar.
-     * The popup automatically disappears after POPUP_DURATION_MS.
+     * Shows a floating popup above the XP bar that disappears after a delay.
+     * Positioned using HorizontalCenter in the UI markup for proper centering.
      */
-    private void showPopup(@Nonnull UICommandBuilder commandBuilder, String text, String color) {
+    private void showAnimatedPopup(String text, String color) {
         int popupId = popupCounter.incrementAndGet();
         String popupSelector = "#Popup" + popupId;
         
-        // Create the popup inline (dynamically generated UI)
+        // Create popup with absolute positioning (centered above XP bar)
+        // Using HorizontalCenter: 0 to center it on screen
+        UICommandBuilder createBuilder = new UICommandBuilder();
         String popupUI = "Label " + popupSelector + " { " +
-                "Anchor: (Height: 28, Width: 200); " +
-                "Style: (FontSize: 18, HorizontalAlignment: Center, VerticalAlignment: Center, " +
+                "Anchor: (Bottom: 185, Height: 32, Width: 200, HorizontalCenter: 0); " +
+                "Style: (FontSize: 20, HorizontalAlignment: Center, VerticalAlignment: Center, " +
                 "TextColor: " + color + ", RenderBold: true); " +
                 "Text: \"" + text + "\"; " +
                 "}";
         
-        commandBuilder.appendInline("#PopupContainer", popupUI);
+        // Append directly to root (selector works after document is loaded)
+        createBuilder.appendInline("#Root", popupUI);
+        this.update(false, createBuilder);
         
-        // Schedule removal of the popup after delay
+        // Schedule removal after delay
         HytaleServer.SCHEDULED_EXECUTOR.schedule(() -> {
             UICommandBuilder removeBuilder = new UICommandBuilder();
             removeBuilder.remove(popupSelector);
             this.update(false, removeBuilder);
-        }, POPUP_DURATION_MS, TimeUnit.MILLISECONDS);
+        }, POPUP_DISPLAY_MS, TimeUnit.MILLISECONDS);
     }
     
     /**
-     * Shows a custom popup with any message and color.
+     * Shows a custom animated popup with any message and color.
      */
     public void showCustomPopup(String text, String hexColor) {
-        UICommandBuilder commandBuilder = new UICommandBuilder();
-        showPopup(commandBuilder, text, hexColor);
-        this.update(false, commandBuilder);
+        showAnimatedPopup(text, hexColor);
     }
 
     /**
