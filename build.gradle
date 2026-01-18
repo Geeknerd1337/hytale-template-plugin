@@ -130,3 +130,69 @@ tasks.register('generateVSCodeLaunch') {
         launchFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(launchConfig))
     }
 }
+
+// Copies the built plugin to the run/plugins directory
+tasks.register('copyPlugin', Copy) {
+    dependsOn 'shadowJar'
+    def pluginsDir = file("$projectDir/run/plugins")
+    if (!pluginsDir.exists()) {
+        pluginsDir.mkdirs()
+    }
+    from tasks.shadowJar.archiveFile
+    into pluginsDir
+}
+
+// Deploys the plugin to your Hytale UserData/Mods folder for testing
+tasks.register('deploy', Copy) {
+    dependsOn 'shadowJar'
+    def modsDir = file("$hytaleHome/UserData/Mods")
+    if (!modsDir.exists()) {
+        modsDir.mkdirs()
+    }
+    from tasks.shadowJar.archiveFile
+    into modsDir
+    
+    doLast {
+        println "Plugin deployed to: ${modsDir}"
+        println "JAR: ${tasks.shadowJar.archiveFile.get().asFile.name}"
+    }
+}
+
+// Runs the Hytale server with your plugin for testing
+tasks.register('runServer', JavaExec) {
+    dependsOn 'copyPlugin'
+    
+    group = 'hytale'
+    description = 'Builds the plugin and runs the Hytale server for testing'
+    
+    // Use the Hytale server JAR
+    classpath = files("$hytaleHome/install/$patchline/package/game/latest/Server/HytaleServer.jar")
+    mainClass = 'com.hypixel.hytale.Main'
+    workingDir = serverRunDir
+    
+    // Server arguments
+    def serverArgs = ['--allow-op', '--disable-sentry']
+    serverArgs << "--assets=${hytaleHome}/install/${patchline}/package/game/latest/Assets.zip"
+    
+    // Add mods path (includes our plugin source for asset pack)
+    def modPaths = ["${projectDir}/run/plugins"]
+    if (includes_pack.toBoolean()) {
+        modPaths << sourceSets.main.resources.srcDirs.first().absolutePath
+    }
+    if (load_user_mods.toBoolean()) {
+        modPaths << "${hytaleHome}/UserData/Mods"
+    }
+    serverArgs << "--mods=${modPaths.join(',')}"
+    
+    args = serverArgs
+    
+    // Enable interactive console input
+    standardInput = System.in
+    
+    doFirst {
+        println "Starting Hytale Server..."
+        println "Plugin JAR: ${tasks.shadowJar.archiveFile.get()}"
+        println "Working directory: ${serverRunDir}"
+        println "Mods: ${modPaths.join(', ')}"
+    }
+}

@@ -1,0 +1,38 @@
+$Common = "Common.ui";
+
+Group {
+  LayoutMode: Center;
+  
+  Group #ExperienceBarContainer {
+    Anchor: (Bottom: 250, Height: 24, Width: 640);
+    
+    Group #Background {
+      Anchor: (Full: 0);
+      Background: #1a1a2e(0.85);
+    }
+    
+    Group #Fill {
+      Anchor: (Left: 2, Top: 2, Bottom: 2, Width: 0);
+      Background: #4ade80;
+    }
+    
+    Group #Border {
+      Anchor: (Full: 0);
+      Background: #6366f1(0.3);
+    }
+    
+    Label #LevelText {
+      Anchor: (Full: 0);
+      Style: (FontSize: 14, HorizontalAlignment: Center, VerticalAlignment: Center, TextColor: #ffffff, RenderBold: true);
+      Text: "Level 1";
+    }
+    
+    Label #XPText {
+      Anchor: (Full: 0);
+      Padding: (Right: 8);
+      Style: (FontSize: 11, HorizontalAlignment: End, VerticalAlignment: Center, TextColor: #a5b4fc);
+      Text: "0/100 XP";
+    }
+  }
+}
+
