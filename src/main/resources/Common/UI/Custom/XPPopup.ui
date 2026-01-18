@@ -1,0 +1,18 @@
+// Floating XP gain popup - added dynamically and removed after delay
+Group #XPPopup {
+  Anchor: (Height: 32, Width: 200);
+  LayoutMode: Center;
+  
+  Label #PopupText {
+    Anchor: (Full: 0);
+    Style: (
+      FontSize: 20, 
+      HorizontalAlignment: Center, 
+      VerticalAlignment: Center, 
+      TextColor: #4ade80, 
+      RenderBold: true
+    );
+    Text: "+100 XP";
+  }
+}
+

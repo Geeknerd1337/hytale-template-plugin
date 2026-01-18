@@ -3,8 +3,14 @@ $Common = "Common.ui";
 Group {
   LayoutMode: Center;
   
+  // Container for floating XP popups (above the bar)
+  Group #PopupContainer {
+    Anchor: (Bottom: 230, Height: 100, Width: 300);
+    LayoutMode: Bottom;
+  }
+  
   Group #ExperienceBarContainer {
-    Anchor: (Bottom: 250, Height: 24, Width: 640);
+    Anchor: (Bottom: 200, Height: 24, Width: 640);
     
     Group #Background {
       Anchor: (Full: 0);
